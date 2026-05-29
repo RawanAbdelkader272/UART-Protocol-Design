@@ -70,12 +70,37 @@ output       DP                  // Decimal point (active-low)
 
 ### Receive Path
 
+![RX](serial_rx.png)
+
+`serial_rx` implements the UART receive datapath as a 4-state Moore FSM. It monitors the `rx` line for a start bit, centers its sampling window, then shifts in each data bit at the mid-point of its period. A `rx_done` strobe fires for one clock cycle when a complete frame has been received.
+
+##### State Machine
+
+|State|Encoding|Description|
+|---|---|---|
+|`RX_IDLE`|`2'd0`|Watching for a falling edge on `rx`|
+|`RX_START`|`2'd1`|Counting 8 ticks to center on the start bit|
+|`RX_DATA`|`2'd2`|Shifting in `DBIT` data bits, one per 16 ticks|
+|`RX_STOP`|`2'd3`|Waiting through the stop-bit period|
+
 1. `serial_rx` monitors `rx` for a falling start-bit edge.
 2. On frame completion, `rx_done` fires for one cycle.
 3. `rx_done` drives `RX_FIFO.wr_en` — the recovered byte is enqueued.
 4. External logic reads bytes by asserting `rd_req`.
 
 ### Transmit Path
+![TX](serial_tx.png)
+
+`serial_tx` serializes a parallel data word into a UART frame (start bit + data bits + stop bit) and drives it onto the `tx` line at the baud rate set by `baud_tick`. A `tx_done` pulse fires after the last stop-bit tick, signalling `uart_core` to dequeue the next byte from the TX FIFO.
+
+#### State Machine
+
+|State|Encoding|`tx` line|Description|
+|---|---|---|---|
+|`TX_IDLE`|`2'd0`|**1** (idle-high)|Waiting for `tx_start`|
+|`TX_START`|`2'd1`|**0** (start bit)|Hold low for 16 ticks|
+|`TX_DATA`|`2'd2`|`shift_reg[0]`|Shift out LSB first, 16 ticks/bit|
+|`TX_STOP`|`2'd3`|**1** (stop bit)|Hold high for `SB_TICK` ticks|
 
 1. External logic enqueues a byte by asserting `wr_req` with `w_data`.
 2. `serial_tx` detects the non-empty FIFO (`~tx_fifo_empty`) and begins transmitting.
@@ -91,5 +116,6 @@ Both FIFOs are instances of the Xilinx `fifo_generator_0` IP:
 |Depth|Configured in Vivado IP|
 |Reset|Synchronous active-high (`srst = ~rst_n`)|
 |Interface|Standard (wr_en, rd_en, din, dout, full, empty)|
+
 
 
