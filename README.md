@@ -13,6 +13,7 @@ The word *asynchronous* is the key: the transmitter and receiver each run from t
 - **Status Monitoring**: `rx_empty` and `tx_full` LEDs for buffer state visibility
 
 ## Top Level Block
+
 ![System Architecture](top_level.png)
 
 ### Default Parameters
