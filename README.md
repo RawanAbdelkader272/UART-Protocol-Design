@@ -66,16 +66,14 @@ output       DP                  // Decimal point (active-low)
 | `countdown_timer.v` | Counts to `MAX_COUNT`, wraps to `0`, outputs `done` pulse. Used for scan & debounce timing. |
 
 
-### Baud-Rate Generator
+## Baud-Rate Generator
 `var_timer` with `BITS=11` counts from 0 to `BAUD_LIMIT`, producing a one-cycle `baud_tick` pulse — the 16× oversample strobe used by both datapaths.
 
-### Receive Path
-
+## Receive Path
 ![RX](serial_rx.png)
-
 `serial_rx` implements the UART receive datapath as a 4-state Moore FSM. It monitors the `rx` line for a start bit, centers its sampling window, then shifts in each data bit at the mid-point of its period. A `rx_done` strobe fires for one clock cycle when a complete frame has been received.
 
-##### State Machine
+### State Machine
 
 |State|Encoding|Description|
 |---|---|---|
@@ -89,12 +87,11 @@ output       DP                  // Decimal point (active-low)
 3. `rx_done` drives `RX_FIFO.wr_en` — the recovered byte is enqueued.
 4. External logic reads bytes by asserting `rd_req`.
 
-### Transmit Path
+## Transmit Path
 ![TX](serial_tx.png)
-
 `serial_tx` serializes a parallel data word into a UART frame (start bit + data bits + stop bit) and drives it onto the `tx` line at the baud rate set by `baud_tick`. A `tx_done` pulse fires after the last stop-bit tick, signalling `uart_core` to dequeue the next byte from the TX FIFO.
 
-#### State Machine
+### State Machine
 
 |State|Encoding|`tx` line|Description|
 |---|---|---|---|
@@ -108,7 +105,6 @@ output       DP                  // Decimal point (active-low)
 3. On frame completion `tx_done` fires, driving `TX_FIFO.rd_en` to fetch the next byte.
 
 ## FIFO Details
-
 Both FIFOs are instances of the Xilinx `fifo_generator_0` IP:
 
 |Property|Value|
